@@ -18,10 +18,10 @@
 
 ## 一些结果（A Few Results）
 ![BootJump](./asset/1.gif)
-<!-- ![BootJump](./asset/2.gif) -->
 ![BootJump](./asset/3.gif)
 ![BootJump](./asset/4.gif)
 ![BootJump](./asset/5.gif)
+<!-- ![BootJump](./asset/2.gif) -->
 
 ## 人脸检测 （Face Detection）
 * [RetinaFace: Single-stage Dense Face Localisation in the Wild](https://arxiv.org/abs/1905.00641)

@@ -33,7 +33,7 @@
 * [head-pose-estimation](https://github.com/lincolnhard/head-pose-estimation)
 
 ## Iris Segmentation
-* [U-Net version (71KB, TVCG 2019)](https://ieeexplore.ieee.org/document/8818661)
+* [U-Net version (model size 71KB, TVCG 2019)](https://ieeexplore.ieee.org/document/8818661)
 
 ## Citation
 

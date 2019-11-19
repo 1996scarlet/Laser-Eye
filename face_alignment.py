@@ -34,6 +34,8 @@ class BaseAlignmentorModel:
             data_shapes=[('data', shape)], for_training=False)
         self.model.set_params(arg_params, aux_params)
 
+        self.pre_landmarks = None
+
     def _preprocess(self, x):
         raise NotImplementedError
 
@@ -41,15 +43,19 @@ class BaseAlignmentorModel:
         raise NotImplementedError
 
     def probability_density_center(self, masks, b=1e-7):
-        # masks[masks < self.thd] = 0
+        masks[masks < 0.6] = 0
+
+        # print(np.sum(masks < 0.6, axis=(1, 2)))
+        N, H, W = masks.shape
+
         masks_sum = np.sum(masks, axis=(1, 2))
         masks_sum += b
 
-        x_sum = np.arange(W) @ np.sum(masks, axis=1)
-        y_sum = np.arange(H) @ np.sum(masks, axis=2)
+        x_sum = np.sum(masks, axis=1) @ np.arange(W)
+        y_sum = np.sum(masks, axis=2) @ np.arange(H)
 
-        points = np.hstack((x_sum, y_sum))
-        return points/masks_sum
+        points = np.stack((x_sum, y_sum), axis=1)
+        return points/masks_sum.reshape(-1, 1)
 
     @staticmethod
     def draw_poly(src, landmarks, stroke=1, color=(125, 255, 125), copy=True):
@@ -129,23 +135,29 @@ class CabAlignmentorModel(BaseAlignmentorModel):
         self.model.forward(db, is_train=False)
         return self.model.get_outputs()[-1][-1].asnumpy()
 
-    def align_one(self, frame, b):
+    def _calibrate(self, pred, thd):
+        if self.pre_landmarks is not None:
+            for i in range(68):
+                if sum(abs(self.pre_landmarks[i] - pred[i]) < thd) != 2:
+                    self.pre_landmarks[i] = pred[i]
+        else:
+            self.pre_landmarks = pred
 
-        img = frame[int(b[1]):int(b[3]), int(b[0]):int(b[2]), :]
+    def align_one(self, frame, det, calibrate=False):
+
+        img = frame[int(det[1]):int(det[3]), int(det[0]):int(det[2]), :]
+
         H, W, _ = img.shape
+        offset = W / 64.0, H / 64.0, det[0], det[1]
 
         inp = self._preprocess(img)
-        offset = W / 64.0, H / 64.0, b[0], b[1]
         out = self._inference(inp)
 
-        N, H, W = out.shape
-        heatline = out.reshape(N, H * W)
-        indexes = np.argmax(heatline, axis=1)
-        x, y = indexes % W, indexes // W
+        pred = self._calculate_points(out, offset)
 
-        pred = np.stack((x, y), axis=1).astype(float32)
-        pred *= offset[:2]
-        pred += offset[-2:]
+        if calibrate:
+            self._calibrate(pred, 2)
+            return self.pre_landmarks
 
         return pred
 
@@ -155,22 +167,17 @@ class CabAlignmentorModel(BaseAlignmentorModel):
         This function predicts a set of 68 2D or 3D images, one for each image present.
         If detect_faces is None the method will also run a face detector.
 
-         Arguments:
-            image_or_path {numpy.array} -- The input image or path to it.
+        Arguments:
+            image {numpy.array} -- The input image.
 
         Keyword Arguments:
             detected_faces {list of numpy.array} -- list of bounding boxes, one for each face found
-            in the image (default: {None})
+            in the image (default: {None}, format: {x1, y1, x2, y2, score})
         """
 
-        for img, d in detected_faces:
-            H, W, _ = img.shape
-
-            inp = self._preprocess(img)
-            offset = W / 64.0, H / 64.0, d[0], d[1]
-            out = self._inference(inp)
-
-            yield from self._calculate_points(out, offset)
+        for det in detected_faces:
+            yield self.align_one(image, det)
+            # yield from self._calculate_points(out, offset)
 
     def _calculate_points(self, heatmaps, offset, method='pdc'):
         """Obtain (x,y) coordinates given a set of N heatmaps. If the center
@@ -193,12 +200,12 @@ class CabAlignmentorModel(BaseAlignmentorModel):
             heatline = heatmaps.reshape(N, H * W)
             indexes = np.argmax(heatline, axis=1)
             x, y = indexes % W, indexes // W
-
             pred = np.stack((x, y), axis=1).astype(np.float)
 
         pred *= offset[:2]
         pred += offset[-2:]
-        yield pred
+
+        return pred
 
 
 if __name__ == '__main__':

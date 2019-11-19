@@ -2,24 +2,36 @@
 
 ![BootJump](./asset/logo.webp)
 
-## Easy Start
+## Installation
+### Requirements
 
-* [Install Gstreamer](https://gstreamer.freedesktop.org/documentation/installing/on-linux.html?gi-language=c)
-* Prepare an usb camera
-* `chmod 755 ./run.sh`
-* `./run.sh`
+* Python 3.5+
+* Linux, Windows or macOS
+* mxnet (>=1.4)
 
-## Tips
+While not required, for optimal performance(especially for the detector) it is highly recommended to run the code using a CUDA enabled GPU.
+
+### Run
+
+* Prepare an usb camera or some videos
+* [Optional] More Accurate Face Alignment
+    * Download [Hourglass2(d=3)-CAB pre-trained model](https://github.com/deepinx/deep-face-alignment)
+    * Replace `MobileAlignmentorModel` with `CabAlignmentorModel`
+* `python3 video_gaze_test.py`
+
+
+### Tips
 * Change `FRAME_SHAPE` in `demo.py` and `draw.py` to edit the processing image size
 * Edit`MxnetDetectionModel`'s `scale` parameter to make a suitable input size of face detector
+* Use `CabAlignmentorModel('weights/cab2d', 0, gpu=0)` for more powerful face alignment
 * More details at [Wiki](https://github.com/1996scarlet/Laser-Eye/wiki)
 
-## A Few Results
-![BootJump](./asset/1.gif)
-![BootJump](./asset/3.gif)
-![BootJump](./asset/4.gif)
-![BootJump](./asset/5.gif)
-<!-- ![BootJump](./asset/2.gif) -->
+## Gaze Estimation for MMD Face Capture
+
+<p align="center"><img src="asset/6.gif" /></p>
+
+* Try with [Open Vtuber](https://github.com/1996scarlet/OpenVtuber)
+
 
 ## Face Detection
 * [RetinaFace: Single-stage Dense Face Localisation in the Wild](https://arxiv.org/abs/1905.00641)
@@ -34,6 +46,13 @@
 
 ## Iris Segmentation
 * [U-Net version (model size 71KB, TVCG 2019)](https://ieeexplore.ieee.org/document/8818661)
+
+## Other Results
+![BootJump](./asset/1.gif)
+![BootJump](./asset/3.gif)
+![BootJump](./asset/4.gif)
+![BootJump](./asset/5.gif)
+<!-- ![BootJump](./asset/2.gif) -->
 
 ## Citation
 

@@ -40,7 +40,10 @@ def draw_3d_arrow(frame, poi, scale=640):
     theta = arcsin(right_m_r)
     pha = arcsin(right_u_r)
 
-    if abs(180 * theta / pi) < 8:
+    # print(f"THETA:{180 * theta / pi}, PHA:{180 * pha / pi}")
+
+    # if abs(180 * theta / pi) < 8:
+    if abs(theta) < 0.12:
         right_m_r = 0
 
     if right_zc_distance**2 - right_delta_y**2 < right_eye_length**2 / 4:
@@ -95,6 +98,7 @@ def plot_mask(src, mask, thd=gs_thd, alpha=0.5):
 
 
 def main():
+    # cap = cv2.VideoCapture('/home/remilia/140.114.77.242/Training_Evaluation_Dataset/Training Dataset/001/noglasses/nonsleepyCombination.avi')
     cap = cv2.VideoCapture('asset/flame.mp4')
     # cap = cv2.VideoCapture(2)
 
@@ -166,7 +170,13 @@ def main():
 
                 zeta = arctan(end_mean[1] / end_mean[0])
 
+                if end_mean[0] < 0:
+                    zeta += pi
+
+                # print(zeta * 180 / pi)
                 real_angle = zeta + roll * pi / 180
+                # print("end mean:", end_mean)
+                # print(roll, real_angle * 180 / pi)
 
                 R = sqrt(sum(end_mean ** 2))
                 end_mean[0] = R * cos(real_angle)

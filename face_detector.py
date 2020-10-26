@@ -1,17 +1,15 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 
-import os
-import argparse
 import numpy as np
 import mxnet as mx
 import cv2
 import time
-from queue import Queue
+from queue import Queue, Full
 
 from generate_anchor import generate_anchors_fpn, nonlinear_pred, generate_runtime_anchors
 from numpy import frombuffer, uint8, concatenate, float32, block, maximum, minimum, prod
-from mxnet.ndarray import waitall, array, concat, from_numpy
+from mxnet.ndarray import waitall, concat
 from functools import partial
 
 from threading import Thread
@@ -24,14 +22,15 @@ class BaseDetection:
         self.device = gpu
         self.margin = margin
 
-        self._queue = Queue(2)
+        self._queue = Queue(200)
         self.write_queue = self._queue.put_nowait
         self.read_queue = iter(self._queue.get, b'')
 
         self._nms_wrapper = partial(self.non_maximum_suppression,
                                     threshold=self.nms_threshold)
-
+        
         self._biggest_wrapper = partial(self.find_biggest_box)
+
 
     def margin_clip(self, b):
         margin_x = (b[2] - b[0]) * self.margin
@@ -52,7 +51,6 @@ class BaseDetection:
     @staticmethod
     def non_maximum_suppression(dets, threshold):
         ''' ##### Author 1996scarlet@gmail.com
-        merged_non_maximum_suppression
         Greedily select boxes with high confidence and overlap with threshold.
         If the boxes' overlap > threshold, we consider they are the same one.
 
@@ -83,7 +81,7 @@ class BaseDetection:
         while order.size > 0:
             keep, others = order[0], order[1:]
 
-            yield dets[keep]
+            yield np.copy(dets[keep])
 
             xx1 = maximum(x1[keep], x1[others])
             yy1 = maximum(y1[keep], y1[others])
@@ -244,7 +242,7 @@ class MxnetDetectionModel(BaseDetection):
 
             try:
                 self.write_queue((frame, out))
-            except:
+            except Full:
                 waitall()
                 print('Frame queue full', file=sys.stderr)
 
@@ -280,8 +278,7 @@ if __name__ == '__main__':
     write = sys.stdout.buffer.write
     camera = iter(partial(read, BUFFER_SIZE), b'')
 
-    fd = MxnetDetectionModel("weights/16and32", 0,
-                             scale=.4, gpu=0, margin=0.15)
+    fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1, margin=0.15)
 
     poster = Thread(target=fd.workflow_postprocess)
     poster.start()

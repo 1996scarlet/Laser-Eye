@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+ #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 import sys
 from head_pose import get_head_pose, line_pairs, draw_head_pose_box
@@ -98,20 +98,23 @@ def plot_mask(src, mask, thd=gs_thd, alpha=0.5):
 
 
 def main():
-    # cap = cv2.VideoCapture('/home/remilia/140.114.77.242/Training_Evaluation_Dataset/Training Dataset/001/noglasses/nonsleepyCombination.avi')
-    cap = cv2.VideoCapture('asset/flame.mp4')
-    # cap = cv2.VideoCapture(2)
 
-    fd = MxnetDetectionModel("weights/16and32", 0, 1., gpu=0, margin=0.15)
+    gpu_ctx = -1
+
+    cap = cv2.VideoCapture('ddd.avi')
+    # cap = cv2.VideoCapture('asset/flame.mp4')
+    # cap = cv2.VideoCapture(0)
+
+    fd = MxnetDetectionModel("weights/16and32", 0, 1., gpu=gpu_ctx, margin=0.15)
     detect_biggest = partial(fd.detect, mode='biggest')
     margin = fd.margin_clip
 
-    fa = MobileAlignmentorModel('weights/alignment', 0, gpu=0)
-    # fa = CabAlignmentorModel('weights/cab2d', 0, gpu=0)
+    # fa = MobileAlignmentorModel('weights/alignment', 0, gpu=gpu_ctx)
+    fa = CabAlignmentorModel('weights/cab2d', 0, gpu=gpu_ctx)
     align = fa.align_one
     cp = zeros((4, 2), dtype=float32)
 
-    gs = MxnetSegmentationModel("weights/iris", 0, gpu=0, thd=gs_thd)
+    gs = MxnetSegmentationModel("weights/iris", 0, gpu=gpu_ctx, thd=gs_thd)
     masker = gs.predict
 
     while True:
@@ -193,6 +196,8 @@ def main():
 
                 except:
                     pass
+
+                frame = fa.draw_poly(frame, landmarks)
 
         cv2.imshow('res', cv2.resize(frame, (960, 540)))
         if cv2.waitKey(1) == ord('q'):

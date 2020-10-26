@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 
 weights/cab2d*
+
+*.jpg
+*.avi

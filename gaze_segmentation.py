@@ -1,9 +1,7 @@
 import numpy as np
 import cv2
-# import tensorflow as tf
 import mxnet as mx
 import time
-from abc import abstractmethod
 
 
 class BaseSegmentation:
@@ -88,87 +86,6 @@ class BaseSegmentation:
 
         return draw
 
-    @abstractmethod
-    def _get_gaze_mask_input(self, *eyes):
-        pass
-
-    @abstractmethod
-    def predict(self, *eyes):
-        pass
-
-
-class TensorflowSegmentationModel(BaseSegmentation):
-    def __init__(self, protobuf, thd=0.05, device='cuda', verbose=False):
-        super().__init__(thd, device, verbose)
-
-        self.config = tf.compat.v1.ConfigProto()
-
-        if 'cuda' in self.device:
-            self.config.gpu_options.allow_growth = True
-
-        self.sess = tf.compat.v1.Session(config=self.config)
-        self._load_graph_get_session(protobuf)
-
-        self._x = self.sess.graph.get_tensor_by_name('data:0')
-        self._mask = self.sess.graph.get_tensor_by_name('prob/Sigmoid:0')
-        self._blink = self.sess.graph.get_tensor_by_name(
-            'classlabel_1/BiasAdd:0')
-
-    def _load_graph_get_session(self, protobuf):
-        with tf.io.gfile.GFile(protobuf, 'rb') as f:
-            G = tf.compat.v1.GraphDef()
-            G.ParseFromString(f.read())
-            self.sess.graph.as_default()
-            tf.import_graph_def(G, name="")
-
-    def _get_gaze_mask_input(self, *eyes):
-        """ ##### Author 1996scarlet@gmail.com
-        Reduce mean and then stack the input eyes. 
-
-        Parameters
-        ----------
-        eyes : ndarray
-            The image batch of shape [N, H, W, C].
-
-        Returns
-        -------
-        input_tensor : ndarray
-            Numpy ndarray of shape [N, H, W, C]. 
-            [?, 48, 96, 3] for this model.
-
-        Usage
-        ----------
-        >>> input_tensor = get_gaze_mask_input(eye1, eye2, ..., eyeN)
-        """
-
-        # assert eyes.shape[-3:] == (48, 96, 3), 'input eyes shape must be [?, 48, 96, 3]'
-        x = np.stack([cv2.resize(e, tuple(self.shape)) for e in eyes])
-        return (x - x.mean(axis=(0, 1, 2))) / 128
-
-    def predict(self, *eyes):
-        """ ##### Author 1996scarlet@gmail.com
-        Predict blink classlabels and gaze masks of input eyes. 
-
-        Parameters
-        ----------
-        eyes : ndarray
-            The image batch of shape [N, H, W, C].
-
-        Returns
-        -------
-        blinks : ndarray
-            Numpy ndarray of shape [N, 2]. 
-
-        masks : ndarray
-            Numpy ndarray of shape [N, H, W, 1]. 
-
-        Usage
-        ----------
-        >>> blinks, masks = gs.predict(left_eye, right_eye)
-        """
-        x = self._get_gaze_mask_input(*eyes)
-        return self.sess.run([self._blink, self._mask], {self._x: x})
-
 
 class MxnetSegmentationModel(BaseSegmentation):
     def __init__(self, prefix, epoch, thd=0.05, gpu=-1, verbose=False):
@@ -250,4 +167,3 @@ class MxnetSegmentationModel(BaseSegmentation):
         blinks = (masks.reshape(len(eyes), 4608) > 0.1).sum(axis=1)
 
         return blinks, masks, points
-        

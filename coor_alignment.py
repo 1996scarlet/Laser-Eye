@@ -127,7 +127,7 @@ if __name__ == '__main__':
     fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1)
     fa = CoordinateAlignmentModel('weights/2d106det', 0)
 
-    cap = cv2.VideoCapture('/home/remilia/white.avi')
+    cap = cv2.VideoCapture('asset/flame.mp4')
 
     while True:
         ret, frame = cap.read()

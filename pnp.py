@@ -1,21 +1,9 @@
 import cv2
 import numpy as np
+from face_detector import MxnetDetectionModel
+from coor_alignment import CoordinateAlignmentModel
 
-
-# K = [6.5308391993466671e+002, 0.0, 3.1950000000000000e+002,
-#      0.0, 6.5308391993466671e+002, 2.3950000000000000e+002,
-#      0.0, 0.0, 1.0]
-# K = [focal_length, 0.0, center.x,
-#      0.0, focal_length, center.y,
-#      0.0, 0.0, 1.0]
-K = [640, 0.0, 320,
-     0.0, 640, 240,
-     0.0, 0.0, 1.0]
-D = [7.0834633684407095e-002, 6.9140193737175351e-002,
-     0.0, 0.0, -1.3073460323689292e+000]
-
-cam_matrix = np.array(K).reshape(3, 3).astype(np.float32)
-dist_coeffs = np.array(D).reshape(5, 1).astype(np.float32)
+dist_coeffs = np.zeors((4, 1), dtype=np.float32)
 
 object_pts = np.float32([[6.825897, 6.760612, 4.402142],
                          [1.330353, 7.122144, 6.903745],
@@ -52,9 +40,9 @@ def draw_head_pose_box(frame, reprojectdst, color=(0, 255, 255)):
 
 
 def get_head_pose(shape, H, W):
-
-    cam_matrix[0, 0] = cam_matrix[1, 1] = W
-    cam_matrix[0, 2], cam_matrix[1, 2] = W/2, H/2
+    cam_matrix = np.array([[W, 0, W/2.0],
+                           [0, W, H/2.0],
+                           [0, 0, 1]], dtype=np.float32)
 
     if len(shape) == 68:
         image_pts = np.float32([shape[17], shape[21], shape[22], shape[26], shape[36],
@@ -88,9 +76,6 @@ def get_head_pose(shape, H, W):
 
 
 def main():
-    from face_detector import MxnetDetectionModel
-    from coor_alignment import CoordinateAlignmentModel
-
     fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1)
     fa = CoordinateAlignmentModel('weights/2d106det', 0)
 
@@ -127,6 +112,7 @@ def main():
         cv2.imshow("result", frame)
         if cv2.waitKey(1) == ord('q'):
             break
+
 
 if __name__ == '__main__':
     main()

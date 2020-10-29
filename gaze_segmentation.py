@@ -52,11 +52,11 @@ class BaseSegmentation:
             indexes = np.argmax(masks.reshape((N, -1)), axis=1)
             return np.stack((indexes % W, indexes // W), axis=1)
 
-    def plot_mask(self, src, masks, thd=0.05, alpha=0.8, mono=True):
+    def plot_mask(self, src, masks, alpha=0.8, mono=True):
         draw = src.copy()
 
         for mask in masks:
-            mask = np.repeat((mask > thd)[:, :, :], repeats=3, axis=2)
+            mask = np.repeat((mask > self.thd)[:, :, :], repeats=3, axis=2)
             if mono:
                 draw = np.where(mask, 255, draw)
             else:
@@ -157,6 +157,7 @@ class MxnetSegmentationModel(BaseSegmentation):
         #     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
         x = self._get_gaze_mask_input(*eyes)
+
         db = mx.io.DataBatch(data=[x, ])
 
         self.model.forward(db, is_train=False)
@@ -164,6 +165,12 @@ class MxnetSegmentationModel(BaseSegmentation):
         masks = result.asnumpy().transpose((0, 2, 3, 1))
 
         points = self.calculate_gaze_mask_center(masks)
-        blinks = (masks.reshape(len(eyes), 4608) > 0.1).sum(axis=1)
+        # blinks = (masks.reshape(len(eyes), 4608) > 0.1).sum(axis=1)
 
-        return blinks, masks, points
+        points = points.astype(np.float32)
+
+        for i, e in enumerate(eyes):
+            points[i] *= e.shape[1]
+            points[i] /= 96.0
+
+        return masks, points

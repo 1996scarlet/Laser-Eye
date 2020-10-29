@@ -6,7 +6,6 @@ import cv2
 import time
 import collections
 import mxnet as mx
-from face_detector import MxnetDetectionModel
 
 
 pred_type = collections.namedtuple('prediction', ['slice', 'close', 'color'])
@@ -123,6 +122,8 @@ class CoordinateAlignmentModel(BaseAlignmentorModel):
 
 
 if __name__ == '__main__':
+
+    from face_detector import MxnetDetectionModel
 
     fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1)
     fa = CoordinateAlignmentModel('weights/2d106det', 0)

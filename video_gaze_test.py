@@ -83,19 +83,19 @@ def get_eye_roi_slice(left_eye_center, right_eye_center):
     return left_slice_h, left_slice_w, right_slice_h, right_slice_w
 
 
-def draw(src, blink_thd=0.22, color=(0, 125, 255), copy=False):
+def draw_sticker(src, blink_thd=0.22, arrow_color=(0, 125, 255), copy=False):
     if copy:
         src = src.copy()
 
     if left_eye_hight / left_eye_width > blink_thd:
         # cv2.circle(frame, tuple(cp[2].astype(int)), 2, (0, 255, 255), -1)
         cv2.arrowedLine(src, tuple(pupils[0].astype(int)),
-                        tuple((offset+pupils[0]).astype(int)), color, 2)
+                        tuple((offset+pupils[0]).astype(int)), arrow_color, 2)
 
     if blink_thd * right_eye_width < right_eye_hight:
         # cv2.circle(frame, tuple(cp[3].astype(int)), 2, (0, 0, 255), -1)
         cv2.arrowedLine(src, tuple(pupils[1].astype(int)),
-                        tuple((offset+pupils[1]).astype(int)), color, 2)
+                        tuple((offset+pupils[1]).astype(int)), arrow_color, 2)
 
     return src
 
@@ -176,8 +176,9 @@ def main(video, gpu_ctx=-1):
             right_eye_hight = landmarks[87, 1] - landmarks[94, 1]
             right_eye_width = landmarks[93, 0] - landmarks[89, 0]
 
-            for i in eye_markers.reshape(-1, 2).astype(int):
-                cv2.circle(frame, tuple(i), 1, (0, 0, 255), -1)
+            for i in eye_markers.reshape(-1, 2).astype(np.int):
+                cv2.circle(frame, tuple(i), radius=1,
+                           color=(0, 0, 255), thickness=-1)
 
             # frame = fa.draw_poly(frame, landmarks)
 

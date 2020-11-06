@@ -1469,5 +1469,5 @@
     113
   ], 
   "heads": [[109, 0, 0]], 
-  "attrs": {"mxnet_version": ["int", 10501]}
+  "attrs": {"mxnet_version": ["int", 10700]}
 }

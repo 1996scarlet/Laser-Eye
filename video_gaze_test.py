@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 
-from head_pose import get_head_pose
+from head_pose import HeadPoseEstimator
 from face_alignment import CoordinateAlignmentModel
 from face_detector import MxnetDetectionModel
 from gaze_segmentation import MxnetSegmentationModel
@@ -83,17 +83,27 @@ def get_eye_roi_slice(left_eye_center, right_eye_center):
     return left_slice_h, left_slice_w, right_slice_h, right_slice_w
 
 
-def draw_sticker(src, blink_thd=0.22, arrow_color=(0, 125, 255), copy=False):
+def draw_sticker(src, offset, pupils, landmarks,
+                 blink_thd=0.22,
+                 arrow_color=(0, 125, 255), copy=False):
     if copy:
         src = src.copy()
 
+    left_eye_hight = landmarks[33, 1] - landmarks[40, 1]
+    left_eye_width = landmarks[39, 0] - landmarks[35, 0]
+
+    right_eye_hight = landmarks[87, 1] - landmarks[94, 1]
+    right_eye_width = landmarks[93, 0] - landmarks[89, 0]
+
+    for mark in landmarks.reshape(-1, 2).astype(int):
+        cv2.circle(src, tuple(mark), radius=1,
+                   color=(0, 0, 255), thickness=-1)
+
     if left_eye_hight / left_eye_width > blink_thd:
-        # cv2.circle(frame, tuple(cp[2].astype(int)), 2, (0, 255, 255), -1)
         cv2.arrowedLine(src, tuple(pupils[0].astype(int)),
                         tuple((offset+pupils[0]).astype(int)), arrow_color, 2)
 
-    if blink_thd * right_eye_width < right_eye_hight:
-        # cv2.circle(frame, tuple(cp[3].astype(int)), 2, (0, 0, 255), -1)
+    if right_eye_hight / right_eye_width > blink_thd:
         cv2.arrowedLine(src, tuple(pupils[1].astype(int)),
                         tuple((offset+pupils[1]).astype(int)), arrow_color, 2)
 
@@ -106,6 +116,7 @@ def main(video, gpu_ctx=-1):
     fd = MxnetDetectionModel("weights/16and32", 0, .6, gpu=gpu_ctx)
     fa = CoordinateAlignmentModel('weights/2d106det', 0, gpu=gpu_ctx)
     gs = MxnetSegmentationModel("weights/iris", 0, gpu=gpu_ctx)
+    hp = HeadPoseEstimator(cap.get(3), cap.get(4))
 
     eye_bound = ([33, 35, 36, 37, 39, 40, 41, 42],
                  [87, 89, 90, 91, 93, 94, 95, 96])
@@ -135,7 +146,7 @@ def main(video, gpu_ctx=-1):
             eye_markers = np.take(landmarks, eye_bound, axis=0)
             eye_centers = np.average(eye_markers, axis=1)
 
-            _, euler_angle = get_head_pose(landmarks, *frame.shape[:2])
+            _, euler_angle = hp.get_head_pose(landmarks)
             pitch, yaw, roll = euler_angle[:, 0]
 
             poi = landmarks[[35, 89]], landmarks[[39, 93]], pupils, eye_centers
@@ -161,24 +172,20 @@ def main(video, gpu_ctx=-1):
                 roll -= 180
 
             real_angle = zeta + roll * pi / 180
+            # real_angle = zeta
+
             # print("end mean:", end_mean)
             # print(roll, real_angle * 180 / pi)
 
             R = norm(end_mean)
             offset = R * cos(real_angle), R * sin(real_angle)
 
-            cv2.imshow("left", cv2.resize(eyes[0], (480, 240)))
-            cv2.imshow("right", cv2.resize(eyes[1], (480, 240)))
+            landmarks[[38, 92]] = landmarks[[34, 88]] = eye_centers
 
-            left_eye_hight = landmarks[33, 1] - landmarks[40, 1]
-            left_eye_width = landmarks[39, 0] - landmarks[35, 0]
+            draw_sticker(frame, offset, pupils, landmarks)
 
-            right_eye_hight = landmarks[87, 1] - landmarks[94, 1]
-            right_eye_width = landmarks[93, 0] - landmarks[89, 0]
-
-            for i in eye_markers.reshape(-1, 2).astype(np.int):
-                cv2.circle(frame, tuple(i), radius=1,
-                           color=(0, 0, 255), thickness=-1)
+            # cv2.imshow("left", cv2.resize(eyes[0], (480, 240)))
+            # cv2.imshow("right", cv2.resize(eyes[1], (480, 240)))
 
             # frame = fa.draw_poly(frame, landmarks)
 

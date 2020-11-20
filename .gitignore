@@ -106,4 +106,7 @@ venv.bak/
 weights/cab2d*
 
 *.jpg
+*.png
 *.avi
+
+videos/

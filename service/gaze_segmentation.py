@@ -122,8 +122,8 @@ class MxnetSegmentationModel(BaseSegmentation):
         x = np.zeros((len(eyes), H, W, 3))
 
         np.stack([cv2.resize(e, (W, H)) for e in eyes], out=x)
-        x -= 128.0
-        x /= 128.0
+        x -= 127.5
+        x /= 127.5
 
         return mx.nd.array(x.transpose((0, 3, 1, 2)))
 

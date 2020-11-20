@@ -22,9 +22,7 @@ While not required, for optimal performance(especially for the detector) it is h
 
 ### Tips
 
-* Change `FRAME_SHAPE` in `demo.py` and `draw.py` to edit the processing image size
 * Edit`MxnetDetectionModel`'s `scale` parameter to make a suitable input size of face detector
-* Use `CabAlignmentorModel('weights/cab2d', 0, gpu=0)` for more powerful face alignment
 * More details at [Wiki](https://github.com/1996scarlet/Laser-Eye/wiki)
 
 ## Gaze Estimation for MMD Face Capture
@@ -51,17 +49,9 @@ While not required, for optimal performance(especially for the detector) it is h
 
 * [U-Net version (model size 71KB, TVCG 2019)](https://ieeexplore.ieee.org/document/8818661)
 
-## Other Results
-
-![BootJump](./asset/1.gif)
-![BootJump](./asset/3.gif)
-![BootJump](./asset/4.gif)
-![BootJump](./asset/5.gif)
-<!-- ![BootJump](./asset/2.gif) -->
-
 ## Citation
 
-```
+``` bibtex
 @article{wang2019realtime,
   title={Realtime and Accurate 3D Eye Gaze Capture with DCNN-based Iris and Pupil Segmentation},
   author={Wang, Zhiyong and Chai, Jinxiang and Xia, Shihong},
@@ -71,16 +61,9 @@ While not required, for optimal performance(especially for the detector) it is h
 }
 
 @inproceedings{deng2019retinaface,
-title={RetinaFace: Single-stage Dense Face Localisation in the Wild},
-author={Deng, Jiankang and Guo, Jia and Yuxiang, Zhou and Jinke Yu and Irene Kotsia and Zafeiriou, Stefanos},
-booktitle={arxiv},
-year={2019}
-}
-
-@inproceedings{Jing2017Stacked,
-  title={Stacked Hourglass Network for Robust Facial Landmark Localisation},
-  author={Jing, Yang and Liu, Qingshan and Zhang, Kaihua and Jing, Yang and Liu, Qingshan and Zhang, Kaihua and Jing, Yang and Liu, Qingshan and Zhang, Kaihua},
-  booktitle={IEEE Conference on Computer Vision & Pattern Recognition Workshops},
-  year={2017},
+  title={RetinaFace: Single-stage Dense Face Localisation in the Wild},
+  author={Deng, Jiankang and Guo, Jia and Yuxiang, Zhou and Jinke Yu and Irene Kotsia and Zafeiriou, Stefanos},
+  booktitle={arxiv},
+  year={2019}
 }
 ```

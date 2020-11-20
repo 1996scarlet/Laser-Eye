@@ -7,12 +7,16 @@ import cv2
 import time
 from queue import Queue, Full
 
-from generate_anchor import generate_anchors_fpn, nonlinear_pred, generate_runtime_anchors
-from numpy import frombuffer, uint8, concatenate, float32, block, maximum, minimum, prod
+from numpy import frombuffer, uint8, concatenate, float32, maximum, minimum, prod
 from mxnet.ndarray import waitall, concat
 from functools import partial
 
 from threading import Thread
+
+import os
+import sys
+sys.path.append(os.path.dirname(__file__))
+from generate_anchor import generate_anchors_fpn, nonlinear_pred, generate_runtime_anchors
 
 
 class BaseDetection:
@@ -46,7 +50,6 @@ class BaseDetection:
     @staticmethod
     def find_biggest_box(dets):
         return max(dets, key=lambda x: x[4]) if dets.size > 0 else None
-        # return max(dets, key=lambda x: x[0]) if dets.size > 0 else None
 
     @staticmethod
     def non_maximum_suppression(dets, threshold):
@@ -268,7 +271,6 @@ class MxnetDetectionModel(BaseDetection):
 
 
 if __name__ == '__main__':
-    import sys
     from numpy import prod
 
     FRAME_SHAPE = 480, 640, 3
@@ -278,7 +280,7 @@ if __name__ == '__main__':
     write = sys.stdout.buffer.write
     camera = iter(partial(read, BUFFER_SIZE), b'')
 
-    fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1, margin=0.15)
+    fd = MxnetDetectionModel("../weights/16and32", 0, scale=.4, gpu=-1, margin=0.15)
 
     poster = Thread(target=fd.workflow_postprocess)
     poster.start()

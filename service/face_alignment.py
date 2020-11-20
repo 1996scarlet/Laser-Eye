@@ -55,6 +55,8 @@ class CoordinateAlignmentModel(BaseAlignmentorModel):
         super().__init__(prefix, epoch, shape, gpu, verbose)
         self.trans_distance = self.input_shape[-1] >> 1
         self.marker_nums = 106
+        self.eye_bound = ([35, 41, 40, 42, 39, 37, 33, 36],
+                          [89, 95, 94, 96, 93, 91, 87, 90])
 
     def _preprocess(self, img, bbox):
         maximum_edge = max(bbox[2:4] - bbox[:2]) * 3.0
@@ -87,6 +89,7 @@ class CoordinateAlignmentModel(BaseAlignmentorModel):
         # add a column
         # pred = np.c_[pred, np.ones((pred.shape[0], 1))]
         pred = np.concatenate((pred, col), axis=1)
+        
         return pred @ iM.T  # dot product
 
     def _calibrate(self, pred, thd):
@@ -124,11 +127,12 @@ class CoordinateAlignmentModel(BaseAlignmentorModel):
 if __name__ == '__main__':
 
     from face_detector import MxnetDetectionModel
+    import sys
 
-    fd = MxnetDetectionModel("weights/16and32", 0, scale=.4, gpu=-1)
-    fa = CoordinateAlignmentModel('weights/2d106det', 0)
+    fd = MxnetDetectionModel("../weights/16and32", 0, scale=.4, gpu=-1)
+    fa = CoordinateAlignmentModel('../weights/2d106det', 0)
 
-    cap = cv2.VideoCapture('asset/flame.mp4')
+    cap = cv2.VideoCapture(sys.argv[1])
 
     while True:
         ret, frame = cap.read()
@@ -144,7 +148,6 @@ if __name__ == '__main__':
             for p in np.round(pred).astype(np.int):
                 cv2.circle(frame, tuple(p), 1, color, 1, cv2.LINE_AA)
 
-        # cv2.imshow("result", cv2.resize(frame, (960, 720)))
         cv2.imshow("result", frame)
         if cv2.waitKey(1) == ord('q'):
             break

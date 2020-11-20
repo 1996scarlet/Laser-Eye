@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 
-from head_pose import HeadPoseEstimator
-from face_alignment import CoordinateAlignmentModel
-from face_detector import MxnetDetectionModel
-from gaze_segmentation import MxnetSegmentationModel
+from service.head_pose import HeadPoseEstimator
+from service.face_alignment import CoordinateAlignmentModel
+from service.face_detector import MxnetDetectionModel
+from service.iris_localization import IrisLocalizationModel
 import cv2
 import numpy as np
 from numpy import sin, cos, pi, arctan
@@ -54,35 +54,6 @@ def calculate_3d_gaze(frame, poi, scale=256):
     return theta, pha, delta.T
 
 
-def get_eye_roi_slice(left_eye_center, right_eye_center):
-    '''
-    Input:
-        Position of left eye, position of right eye.
-    Output:
-        Eye ROI slice
-    Usage:
-        left_slice_h, left_slice_w, right_slice_h, right_slice_w = get_eye_roi_slice(
-            lms[0], lms[1])
-    '''
-
-    eye_bbox_w = norm(left_eye_center - right_eye_center) / 3.2
-
-    half_eye_bbox_w = eye_bbox_w
-    half_eye_bbox_h = eye_bbox_w / 2.0
-
-    left_slice_h = slice(int(left_eye_center[1]-half_eye_bbox_h),
-                         int(left_eye_center[1]+half_eye_bbox_h))
-    left_slice_w = slice(int(left_eye_center[0]-half_eye_bbox_w),
-                         int(left_eye_center[0]+half_eye_bbox_w))
-
-    right_slice_h = slice(int(right_eye_center[1]-half_eye_bbox_h),
-                          int(right_eye_center[1]+half_eye_bbox_h))
-    right_slice_w = slice(int(right_eye_center[0]-half_eye_bbox_w),
-                          int(right_eye_center[0]+half_eye_bbox_w))
-
-    return left_slice_h, left_slice_w, right_slice_h, right_slice_w
-
-
 def draw_sticker(src, offset, pupils, landmarks,
                  blink_thd=0.22,
                  arrow_color=(0, 125, 255), copy=False):
@@ -115,11 +86,8 @@ def main(video, gpu_ctx=-1):
 
     fd = MxnetDetectionModel("weights/16and32", 0, .6, gpu=gpu_ctx)
     fa = CoordinateAlignmentModel('weights/2d106det', 0, gpu=gpu_ctx)
-    gs = MxnetSegmentationModel("weights/iris", 0, gpu=gpu_ctx)
-    hp = HeadPoseEstimator(cap.get(3), cap.get(4))
-
-    eye_bound = ([33, 35, 36, 37, 39, 40, 41, 42],
-                 [87, 89, 90, 91, 93, 94, 95, 96])
+    gs = IrisLocalizationModel("weights/iris_landmark.tflite")
+    hp = HeadPoseEstimator("weights/object_points.npy", cap.get(3), cap.get(4))
 
     while True:
         ret, frame = cap.read()
@@ -130,24 +98,25 @@ def main(video, gpu_ctx=-1):
         bboxes = fd.detect(frame)
 
         for landmarks in fa.get_landmarks(frame, bboxes, calibrate=True):
-            # eye ROI slice
-            left_slice_h, left_slice_w, right_slice_h, right_slice_w = \
-                get_eye_roi_slice(landmarks[34], landmarks[88])
-
-            # eye region of interest
-            eyes = (frame[left_slice_h, left_slice_w, :],
-                    frame[right_slice_h, right_slice_w, :])
-
-            masks, pupils = gs.predict(*eyes)
-
-            pupils += np.array([[left_slice_w.start, left_slice_h.start],
-                                [right_slice_w.start, right_slice_h.start]])
-
-            eye_markers = np.take(landmarks, eye_bound, axis=0)
-            eye_centers = np.average(eye_markers, axis=1)
-
+            # calculate head pose
             _, euler_angle = hp.get_head_pose(landmarks)
             pitch, yaw, roll = euler_angle[:, 0]
+
+            eye_markers = np.take(landmarks, fa.eye_bound, axis=0)
+            
+            eye_centers = np.average(eye_markers, axis=1)
+            # eye_centers = landmarks[[34, 88]]
+            
+            # eye_lengths = np.linalg.norm(landmarks[[39, 93]] - landmarks[[35, 89]], axis=1)
+            eye_lengths = (landmarks[[39, 93]] - landmarks[[35, 89]])[:, 0]
+
+            iris_left = gs.get_mesh(frame, eye_lengths[0], eye_centers[0])
+            pupil_left, _ = gs.draw_pupil(iris_left, frame, thickness=1)
+
+            iris_right = gs.get_mesh(frame, eye_lengths[1], eye_centers[1])
+            pupil_right, _ = gs.draw_pupil(iris_right, frame, thickness=1)
+
+            pupils = np.array([pupil_left, pupil_right])
 
             poi = landmarks[[35, 89]], landmarks[[39, 93]], pupils, eye_centers
             theta, pha, delta = calculate_3d_gaze(frame, poi)
@@ -182,12 +151,9 @@ def main(video, gpu_ctx=-1):
 
             landmarks[[38, 92]] = landmarks[[34, 88]] = eye_centers
 
+            # gs.draw_eye_markers(eye_markers, frame, thickness=1)
+
             draw_sticker(frame, offset, pupils, landmarks)
-
-            # cv2.imshow("left", cv2.resize(eyes[0], (480, 240)))
-            # cv2.imshow("right", cv2.resize(eyes[1], (480, 240)))
-
-            # frame = fa.draw_poly(frame, landmarks)
 
         # cv2.imshow('res', cv2.resize(frame, (960, 540)))
         cv2.imshow('res', frame)

@@ -97,6 +97,10 @@ if __name__ == "__main__":
     from face_alignment import CoordinateAlignmentModel
     from face_detector import MxnetDetectionModel
 
+    import os
+
+    os.chdir(os.path.dirname(__file__))
+
     gpu_ctx = -1
     video = sys.argv[1]
     YAW_THD = 45
@@ -107,9 +111,6 @@ if __name__ == "__main__":
     fa = CoordinateAlignmentModel('../weights/2d106det', 0, gpu=gpu_ctx)
     gs = IrisLocalizationModel("../weights/iris_landmark.tflite")
     hp = HeadPoseEstimator("../weights/object_points.npy", cap.get(3), cap.get(4))
-
-    eye_bound = ([35, 41, 40, 42, 39, 37, 33, 36],
-                 [89, 95, 94, 96, 93, 91, 87, 90])
 
     counter = 0
 
@@ -129,7 +130,7 @@ if __name__ == "__main__":
             _, euler_angle = hp.get_head_pose(landmarks)
             pitch, yaw, roll = euler_angle[:, 0]
 
-            eye_markers = np.take(landmarks, eye_bound, axis=0)
+            eye_markers = np.take(landmarks, fa.eye_bound, axis=0)
             
             # eye_centers = np.average(eye_markers, axis=1)
             eye_centers = landmarks[[34, 88]]

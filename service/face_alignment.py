@@ -128,6 +128,9 @@ if __name__ == '__main__':
 
     from face_detector import MxnetDetectionModel
     import sys
+    import os
+
+    os.chdir(os.path.dirname(__file__))
 
     fd = MxnetDetectionModel("../weights/16and32", 0, scale=.4, gpu=-1)
     fa = CoordinateAlignmentModel('../weights/2d106det', 0)

@@ -115,8 +115,6 @@ def main(filename):
 
     cap = cv2.VideoCapture(filename)
 
-    from face_detector import MxnetDetectionModel
-    from face_alignment import CoordinateAlignmentModel
 
     fd = MxnetDetectionModel("../weights/16and32", 0, scale=.6, gpu=-1)
     fa = CoordinateAlignmentModel('../weights/2d106det', 0)
@@ -153,4 +151,10 @@ def main(filename):
 
 
 if __name__ == '__main__':
+    from face_detector import MxnetDetectionModel
+    from face_alignment import CoordinateAlignmentModel
+    import os
+    
+    os.chdir(os.path.dirname(__file__))
+    
     main(sys.argv[1])
